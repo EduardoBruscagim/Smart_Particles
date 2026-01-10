@@ -16,7 +16,7 @@ public class SPMod {
             SPConfig.load();
             
             modContainer.registerExtensionPoint(IConfigScreenFactory.class, 
-                (container, parent) -> new SPConfigScreen(parent)
+                (mc, parent) -> new SPConfigScreen(parent)
             );
         }
     }

@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class SPConfig {
-    // FMLPaths.CONFIGDIR.get() gets the standard config folder
     private static final Path CONFIG_PATH = FMLPaths.CONFIGDIR.get().resolve("smart_particles/config.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 

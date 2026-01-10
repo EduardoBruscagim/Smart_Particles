@@ -18,7 +18,7 @@ public class SPConfigScreen extends Screen {
     private boolean smartCulling;
 
     public SPConfigScreen(Screen parent) {
-        super(Component.literal("Smart Particles Config"));
+        super(Component.literal("Smart Particles"));
         this.parent = parent;
         this.smartCulling = SPConfig.instance.smartCameraCulling;
     }

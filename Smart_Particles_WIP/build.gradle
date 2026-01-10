@@ -1,7 +1,8 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.78'
+    // FIX: Use NeoGradle 7 for 1.20.5. Do NOT use 'net.neoforged.moddev'.
+    id 'net.neoforged.gradle.userdev' version '7.0.145'
 }
 
 version = project.mod_version
@@ -9,42 +10,45 @@ group = project.maven_group
 
 repositories {
     mavenCentral()
-    // Removed shedaniel maven
 }
 
 base {
-    archivesName = project.mod_id 
+    archivesName = project.mod_id
 }
 
 java {
     toolchain {
+        // Minecraft 1.20.5 requires Java 21
         languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
-neoForge {
-    version = project.neoforge_version
-
-    mods {
-        smart_particles {
-            sourceSet sourceSets.main
-        }
-    }
+// This block works ONLY if 'net.neoforged.gradle.userdev' is applied above
+minecraft {
+    mappings channel: 'official', version: '1.20.5'
+    
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
     runs {
-        client {
-            client()
+        configureEach {
+            workingDirectory project.file('run')
+            // This property is required for NeoGradle to identify your mod
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
-        server {
-            server()
+
+        client {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            programArgument '--nogui'
         }
     }
 }
 
 dependencies {
-    // Removed Cloth Config dependency
+    implementation "net.neoforged:neoforge:${project.neoforge_version}"
 }
 
 tasks.withType(JavaCompile).configureEach {
