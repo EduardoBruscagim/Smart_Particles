@@ -2,19 +2,19 @@ package sp;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import net.fabricmc.loader.api.FabricLoader;
+import net.neoforged.fml.loading.FMLPaths; 
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class SPConfig {
-    private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("smart_particles/config.json");
+    // FMLPaths.CONFIGDIR.get() gets the standard config folder
+    private static final Path CONFIG_PATH = FMLPaths.CONFIGDIR.get().resolve("smart_particles/config.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static SPConfig instance = new SPConfig();
 
-    // The setting accessible to the user
     public int particleLimit = 5000;
     public boolean smartCameraCulling = true;
 

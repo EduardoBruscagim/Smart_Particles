@@ -2,39 +2,34 @@ package sp.mixin;
 
 import sp.SPConfig;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.particle.ParticleManager;
-import net.minecraft.client.particle.ParticleTextureSheet;
-import net.minecraft.particle.ParticleGroup;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.particle.ParticleEngine;
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.particles.ParticleGroup;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
-@Mixin(ParticleManager.class)
+@Mixin(ParticleEngine.class)
 public abstract class ParticleManagerMixin {
 
     @Shadow
-    private Map<ParticleTextureSheet, Object> particles;
+    private Map<ParticleRenderType, Queue<Particle>> particles;
 
     @Shadow
-    private Object2IntOpenHashMap<ParticleGroup> groupCounts;
+    private Object2IntOpenHashMap<ParticleGroup> trackedParticleCounts;
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void smartparticles$enforceParticleLimit(CallbackInfo ci) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        ClientPlayerEntity player = client.player;
+        Minecraft client = Minecraft.getInstance();
+        LocalPlayer player = client.player;
         if (player == null) return;
 
         int limit = Math.max(0, SPConfig.instance.particleLimit);
@@ -42,20 +37,16 @@ public abstract class ParticleManagerMixin {
 
         if (!smartCulling) {
             int total = 0;
-            for (Object renderer : particles.values()) {
-                if (renderer instanceof ParticleRendererAccessor accessor) {
-                    Queue<Particle> q = accessor.sp$getParticles();
-                    if (q != null) {
-                        total += q.size();
-                    }
-                }
+            for (Queue<Particle> q : particles.values()) {
+                total += q.size();
             }
             if (total <= limit) return;
         }
 
-        Vec3d camPos = player.getEyePos();
-        Vec3d camDir = player.getRotationVec(1.0F);
-        double fov = client.options.getFov().getValue();
+        Vec3 camPos = player.getEyePosition();
+        Vec3 camDir = player.getViewVector(1.0F);
+        
+        double fov = client.options.fov().get(); 
         double frustumThreshold = Math.cos(Math.toRadians((fov / 2.0) + 30.0));
         double frustumPenalty = 1.0e10;
 
@@ -68,11 +59,8 @@ public abstract class ParticleManagerMixin {
         int heapSize = 0;
 
         if (limit > 0) {
-            for (Object renderer : particles.values()) {
-                if (!(renderer instanceof ParticleRendererAccessor accessor)) continue;
-                
-                Queue<Particle> q = accessor.sp$getParticles();
-                if (q == null) continue;
+            for (Queue<Particle> q : particles.values()) {
+                if (q == null || q.isEmpty()) continue;
 
                 for (Particle p : q) {
                     SPAccessor acc = (SPAccessor) p;
@@ -122,18 +110,13 @@ public abstract class ParticleManagerMixin {
             keep.add(heapParticles[i]);
         }
 
-        for (Object renderer : particles.values()) {
-            if (!(renderer instanceof ParticleRendererAccessor accessor)) continue;
-            
-            Queue<Particle> q = accessor.sp$getParticles();
-            if (q == null) continue;
-
+        for (Queue<Particle> q : particles.values()) {
             Iterator<Particle> it = q.iterator();
             while (it.hasNext()) {
                 Particle p = it.next();
                 if (!keep.contains(p)) {
                     it.remove();
-                    p.markDead();
+                    p.remove(); 
                     decrementGroupCount(p);
                 }
             }
@@ -141,14 +124,15 @@ public abstract class ParticleManagerMixin {
     }
 
     private void decrementGroupCount(Particle p) {
-        p.getGroup().ifPresent(group -> {
-            int current = groupCounts.getInt(group);
+        if (p.getParticleGroup().isPresent()) {
+            ParticleGroup group = p.getParticleGroup().get();
+            int current = trackedParticleCounts.getInt(group);
             if (current <= 1) {
-                groupCounts.removeInt(group);
+                trackedParticleCounts.removeInt(group);
             } else {
-                groupCounts.put(group, current - 1);
+                trackedParticleCounts.put(group, current - 1);
             }
-        });
+        }
     }
 
     private static void heapSiftUp(Particle[] ps, double[] ds, int idx) {
