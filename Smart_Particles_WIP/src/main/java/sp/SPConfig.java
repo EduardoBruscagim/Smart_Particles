@@ -5,45 +5,46 @@ import com.google.gson.GsonBuilder;
 import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class SPConfig {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FMLPaths.CONFIGDIR.get().resolve("smart_particles/config.json");
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+    public static SPConfig instance = new SPConfig();
 
     public int particleLimit = 5000;
-    public boolean smartCameraCulling = false;
-
-    private static SPConfig INSTANCE = new SPConfig();
+    public boolean smartCameraCulling = true;
 
     public static SPConfig get() {
-        return INSTANCE;
+        return instance;
     }
 
     public static void load() {
-        if (!Files.exists(CONFIG_PATH)) {
+        if (Files.exists(CONFIG_PATH)) {
+            try {
+                String json = Files.readString(CONFIG_PATH);
+                instance = GSON.fromJson(json, SPConfig.class);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
             save();
-            return;
         }
 
-        try (Reader reader = Files.newBufferedReader(CONFIG_PATH)) {
-            INSTANCE = GSON.fromJson(reader, SPConfig.class);
-            if (INSTANCE == null) INSTANCE = new SPConfig();
-        } catch (IOException e) {
-            e.printStackTrace();
-            INSTANCE = new SPConfig();
+        if (instance.particleLimit < 0) {
+            instance.particleLimit = 0;
+            save();
         }
     }
 
     public static void save() {
         try {
-            Files.createDirectories(CONFIG_PATH.getParent());
-            try (Writer writer = Files.newBufferedWriter(CONFIG_PATH)) {
-                GSON.toJson(INSTANCE, writer);
+            if (!Files.exists(CONFIG_PATH.getParent())) {
+                Files.createDirectories(CONFIG_PATH.getParent());
             }
+            Files.writeString(CONFIG_PATH, GSON.toJson(instance));
         } catch (IOException e) {
             e.printStackTrace();
         }
