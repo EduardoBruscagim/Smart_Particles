@@ -27,9 +27,6 @@
 	"entrypoints": {
 		"client": [
 			"sp.SPMod"
-		],
-		"modmenu": [
-			"sp.SPModMenuIntegration"
 		]
 	},
 	"mixins": [
@@ -37,7 +34,7 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.16.7",
-		"minecraft": "1.21.11",
+		"minecraft": "1.21.9",
 		"java": ">=21"
 	}
 }

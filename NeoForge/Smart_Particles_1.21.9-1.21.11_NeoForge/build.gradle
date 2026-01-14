@@ -1,57 +1,51 @@
 plugins {
-    id 'java-library'
-    id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.138'
+    id 'java'
+    id 'net.neoforged.moddev' version '2.0.139'
 }
+
 
 version = project.mod_version
 group = project.maven_group
 
 repositories {
     mavenCentral()
-    // Removed shedaniel maven
-}
-
-base {
-    archivesName = project.mod_id 
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
+    maven { url = "https://maven.terraformersmc.com/releases/" }
 }
 
 neoForge {
-    version = project.neoforge_version
+    version = project.neo_version
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+        }
+    }
 
     mods {
         smart_particles {
             sourceSet sourceSets.main
         }
     }
-
-    runs {
-        client {
-            client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-        server {
-            server()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-    }
 }
 
 dependencies {
-    // Removed Cloth Config dependency
 }
 
 tasks.withType(JavaCompile).configureEach {
+    options.release = 21
     options.encoding = 'UTF-8'
 }
 
-tasks.withType(ProcessResources).configureEach {
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.named('processResources') {
     var replaceProperties = [
             mod_version: project.mod_version
     ]

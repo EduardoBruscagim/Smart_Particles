@@ -1,104 +1,83 @@
 package sp;
 
-// CHANGED: Util is often in 'net.minecraft.util' in some mappings
-import net.minecraft.util.Util;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import java.net.URI;
-
-public class SPConfigScreen extends Screen {
+public final class SPConfigScreen extends Screen {
     private final Screen parent;
-    private EditBox limitField;
-    private CycleButton<Boolean> cullingButton;
-    private boolean smartCulling;
+
+    private EditBox particleLimitField;
+    private Checkbox smartCameraCullingBox;
 
     public SPConfigScreen(Screen parent) {
-        super(Component.literal("Smart Particles"));
+        super(Component.literal("Smart Particles Config"));
         this.parent = parent;
-        this.smartCulling = SPConfig.instance.smartCameraCulling;
     }
 
     @Override
+    @SuppressWarnings({ "null" })
     protected void init() {
-        // 1. Smart Culling Toggle
-        this.cullingButton = CycleButton.onOffBuilder(this.smartCulling)
-                .create(this.width / 2 - 100, this.height / 4 + 24, 200, 20, 
-                        Component.literal("Smart Culling"), (button, value) -> this.smartCulling = value);
-        this.addRenderableWidget(this.cullingButton);
+        final int centerX = this.width / 2;
+        final int y0 = this.height / 4;
 
-        // 2. Particle Limit Text Field
-        this.limitField = new EditBox(this.font, this.width / 2 - 100, this.height / 4 + 68, 200, 20, Component.literal("Particle Limit"));
-        this.limitField.setValue(String.valueOf(SPConfig.instance.particleLimit));
-        this.limitField.setFilter(text -> text.matches("\\d*"));
-        this.addRenderableWidget(this.limitField);
+        SPConfig cfg = SPConfig.get();
 
-        // 3. Reset Button
-        this.addRenderableWidget(Button.builder(Component.literal("Reset to Defaults"), button -> {
-            this.smartCulling = true;
-            this.cullingButton.setValue(true);
-            this.limitField.setValue("5000");
-        }).bounds(this.width / 2 - 100, this.height - 88, 200, 20).build());
+        this.particleLimitField = new EditBox(
+            this.font,
+            centerX - 100, y0,
+            200, 20,
+            Component.literal("Particle Limit")
+        );
+        this.particleLimitField.setValue(Integer.toString(cfg.particleLimit));
+        this.particleLimitField.setMaxLength(10);
+        this.addRenderableWidget(this.particleLimitField);
 
-        // 4. Save & Quit Button
-        this.addRenderableWidget(Button.builder(Component.literal("Save & Quit"), button -> {
-            save();
-            this.minecraft.setScreen(this.parent);
-        }).bounds(this.width / 2 - 100, this.height - 64, 200, 20).build());
+        this.smartCameraCullingBox = Checkbox.builder(Component.literal("Smart Camera Culling"), this.font)
+            .pos(centerX - 100, y0 + 30)
+            .selected(cfg.smartCameraCulling)
+            .build();
+        this.addRenderableWidget(this.smartCameraCullingBox);
 
-        // 5. Link Buttons (Ko-fi | Modrinth | Curseforge)
-        int buttonWidth = 64;
-        int spacing = 4;
-        int startX = this.width / 2 - ((buttonWidth * 3) + (spacing * 2)) / 2;
-        int yPos = this.height - 30;
+        this.addRenderableWidget(Button.builder(Component.literal("Save"), btn -> {
+            applyAndSave();
+            var mc = this.minecraft;
+            if (mc != null) mc.setScreen(parent);
+        }).pos(centerX - 100, y0 + 70).size(98, 20).build());
 
-        // Ko-fi
-        this.addRenderableWidget(Button.builder(Component.literal("Ko-fi"), b -> openLink("https://ko-fi.com/andrewchedid"))
-                .bounds(startX, yPos, buttonWidth, 20).build());
-
-        // Modrinth
-        this.addRenderableWidget(Button.builder(Component.literal("Modrinth"), b -> openLink("https://modrinth.com/mod/smart-particles"))
-                .bounds(startX + buttonWidth + spacing, yPos, buttonWidth, 20).build());
-
-        // Curseforge
-        this.addRenderableWidget(Button.builder(Component.literal("Curse"), b -> openLink("https://www.curseforge.com/minecraft/mc-mods/smart-particles"))
-                .bounds(startX + (buttonWidth + spacing) * 2, yPos, buttonWidth, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Cancel"), btn -> {
+            var mc = this.minecraft;
+            if (mc != null) mc.setScreen(parent);
+        }).pos(centerX + 2, y0 + 70).size(98, 20).build());
     }
 
-    private void openLink(String url) {
-        this.minecraft.setScreen(new ConfirmLinkScreen((yes) -> {
-            if (yes) {
-                Util.getPlatform().openUri(URI.create(url));
-            }
-            this.minecraft.setScreen(this);
-        }, url, true));
-    }
+    private void applyAndSave() {
+        SPConfig cfg = SPConfig.get();
 
-    private void save() {
-        SPConfig.instance.smartCameraCulling = this.smartCulling;
+        int limit = cfg.particleLimit;
         try {
-            SPConfig.instance.particleLimit = Integer.parseInt(this.limitField.getValue());
-        } catch (NumberFormatException e) {
-            SPConfig.instance.particleLimit = 5000;
+            limit = Integer.parseInt(this.particleLimitField.getValue().trim());
+        } catch (Exception ignored) {
         }
+
+        if (limit < 0) limit = 0;
+
+        cfg.particleLimit = limit;
+        cfg.smartCameraCulling = this.smartCameraCullingBox.selected();
+
         SPConfig.save();
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
-        
-        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, this.height / 4 + 10, 0xFFFFFF);
-        guiGraphics.drawCenteredString(this.font, "Particle Limit:", this.width / 2, this.height / 4 + 48 + 5, 0xFFA0A0A0);
+    public void onClose() {
+        var mc = this.minecraft;
+        if (mc != null) mc.setScreen(parent);
     }
 
     @Override
-    public void onClose() {
-        this.minecraft.setScreen(this.parent);
+    public boolean isPauseScreen() {
+        return false;
     }
 }
