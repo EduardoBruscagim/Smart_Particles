@@ -57,8 +57,8 @@ public abstract class ParticleManagerMixin {
         }
 
         Camera camera = client.gameRenderer.getMainCamera();
-        Vec3 camPos = camera.getPosition();
-        Vec3 camDir = Vec3.directionFromRotation(camera.getXRot(), camera.getYRot());
+        Vec3 camPos = camera.position();
+        Vec3 camDir = Vec3.directionFromRotation(camera.xRot(), camera.yRot());
 
         double fov = client.options.fov().get();
         double frustumThreshold = Math.cos(Math.toRadians((fov / 2.0) + 30.0));

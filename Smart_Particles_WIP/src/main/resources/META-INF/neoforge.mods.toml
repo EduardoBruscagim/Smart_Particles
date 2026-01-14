@@ -19,13 +19,13 @@ config = "sp.mixins.json"
 [[dependencies.smart_particles]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21.9,)"
+versionRange = "[21.10,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.smart_particles]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21.9,1.21.11)"
+versionRange = "[1.21.11,1.22)"
 ordering = "NONE"
 side = "BOTH"
